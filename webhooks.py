@@ -58,6 +58,7 @@ def check_user(message):
 
     if msg_type == 0 and action == "View More" or action == "Withdraw Cash":
         update_data(phone, "next_action", "")
+        update_data(phone, "action", "")
         message_body = "This feature is under maintenance, please check later! type *home* to return to main menu"
         send_message(message_body, phone, urlq="sendMessage")
     elif msg_type == 0 and action == "home":
