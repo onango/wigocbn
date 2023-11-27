@@ -1,6 +1,8 @@
 from helpers.wigocbn import *
 from helpers.whatsapp import *
 import requests
+import json
+from flask import jsonify
 
 cache = {}
 
@@ -52,11 +54,58 @@ def check_user(message):
 
     action = read_data(phone, "action")
     next_action = read_data(phone, "next_action")
+    print("ACT ------------------",action, msg_type)
 
-    if msg_type == 0 and action == "Join wigoPay Network":
-        whatsapp_history_log_next(phone, {"action": "Join", "param": ""})
-        message_body = "Thank you for your interest, please try again later!"
+    if msg_type == 0 and action == "View More" or action == "Withdraw Cash":
+        update_data(phone, "next_action", "")
+        message_body = "This feature is under maintenance, please check later! type *home* to return to main menu"
         send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and action == "home":
+        
+        user_info = get_user_by_phone("+"+phone)
+        if user_info:
+            user_id = user_info['userID']
+            wallet_balance = get_user_wallet(user_id)["balance"]
+            header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
+            send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
+        else:
+            send_template_message("home", phone, sender_name, urlq="sendTemplate")
+    elif msg_type == 0 and action == "Join wigoPay Network":
+        # print("ACT2 ------------------",action, msg_type)
+        send_template_message("plan_type_home", phone, sender_name, urlq="sendTemplate")
+    elif msg_type == 0 and action == "Free plan":
+        update_data(phone, "plan_type", action)
+        update_data(phone, "next_action", "id_no")
+        message_body = "Enter your Invite code"
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and action == "Paid plan":
+        account_plans['phone'] = phone
+        message_body = account_plans
+        send_list_message(message_body, urlq="sendList")
+    elif msg_type == 0 and next_action is not None and next_action == 'Join':
+        send_template_message("plan_home", phone, sender_name, urlq="sendTemplate")
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'id_no':
+        update_data(phone, "next_action", "next_kin")
+        update_data(phone, "invite_code", action)
+        message_body = "ID of Next of Kin"
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'next_kin':
+        update_data(phone, "next_action", "next_kin_no")
+        update_data(phone, "id_no", action)
+        message_body = "Name of next of Kin"
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'next_kin_no':
+        update_data(phone, "next_kin", action)
+        update_data(phone, "next_action", "complete_join")
+        message_body = "Phone Number of next of Kin"
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'complete_join':
+        update_data(phone, "next_kin_no", action)
+        update_data(phone, "next_action", "")
+        message_body = "Thank you, your request is being processed"
+        send_message(message_body, phone, urlq="sendMessage")
+        join_wigopay(phone)
     elif msg_type == 0 and next_action is not None and next_action == 'help_ack':
         update_data(phone, "next_action", "")
         message_body = "Thank you for your enquiry!"
@@ -93,9 +142,9 @@ def check_user(message):
     # elif action['action'] == 'Recharge':
     #     pass
 
-    else:
-        if user and msg_type == 0:
-            send_template_message("home", phone, sender_name, urlq="sendTemplate")
+    # else:
+    #     if user and msg_type == 0:
+    #         send_template_message("home", phone, sender_name, urlq="sendTemplate")
 #send_template_message("home", "254701515491", "Antony", urlq="sendTemplate")
 # phone = "254701515491"
 # whatsapp_history_log_next(phone, {"action": "BuyAirtime1", "airtime_from": phone})
@@ -142,6 +191,79 @@ def update_data(key, sub_key, new_value):
 # print(f"Updated City: {updated_city}")
 
 
+def join_wigopay(phone):
+
+    data = {
+        'phone': "+"+phone,  
+        'idNumber': read_data(phone, "id_no"),      
+        'referralCode': read_data(phone, "invite_code"),
+        'constituency': '',
+        'nextKin': read_data(phone, "next_kin"),
+        'nextKinNo': read_data(phone, "next_kin_no"),  
+        'planType': read_data(phone, "plan_type"), 
+    }
+
+    if data['planType'] == 'Free plan':
+        data['planType'] = 'BASIC'
+        data['free_registration'] = True
+
+    account_type = validate_account_type(data['planType'])
+    if not account_type:
+        return jsonify({'error': 'Invalid Account Plan'}), 400
+
+    referee = validate_referral(data['referralCode'])
+    if not referee:
+        return jsonify({'error': 'Referral code given is invalid'}), 404
+
+    user_by_phone = validate_user_by_phone(data['phone'])
+    if user_by_phone:
+        return jsonify({'error': 'An account with that phone number already exists'}), 404
+
+    user_by_id = validate_user_by_id(data['idNumber'])
+    if user_by_id:
+        return jsonify({'error': 'An account with that ID number already exists'}), 404
+
+    data['referee'] = referee
+    data['accountType'] = account_type
+
+    return create_cbn_user(data)
+
+    user_data = {
+        'phone': "+"+phone,  
+        'idNumber': read_data(phone, "id_no"),      
+        'referralCode': read_data(phone, "invite_code"),
+        'constituency': '',
+        'nextKin': read_data(phone, "next_kin"),
+        'nextKinNo': read_data(phone, "next_kin_no"),  
+        'planType': read_data(phone, "plan_type"), 
+    }
+    print('User Data', user_data)
+
+
+    registration_url = 'https://account.intrepid.co.ke/api/v1/wigocbn/register-user'
+    #'https://account.intrepid.co.ke/api/v1/wigocbn/register-user'
+
+    # try:
+    #     # Making a POST request
+    #     response = requests.post(registration_url, json=user_data)
+
+    #     # Check if the request was successful (status code 2xx)
+    #     response.raise_for_status()
+
+    #     # Print the response status code and content
+    #     print('Response Status Code:', response.status_code)
+    #     print('Response Content:', response.text)
+
+    # except requests.exceptions.HTTPError as errh:
+    #     print(f"HTTP Error: {errh}")
+    # except requests.exceptions.ConnectionError as errc:
+    #     print(f"Error Connecting: {errc}")
+    # except requests.exceptions.Timeout as errt:
+    #     print(f"Timeout Error: {errt}")
+    # except requests.exceptions.RequestException as err:
+    #     print(f"Request Exception: {err}")
+
+
 
 
 def make_stkpush_request(phone, recipient, amount):
@@ -176,3 +298,33 @@ def make_stkpush_request(phone, recipient, amount):
 
 # Example usage:
 # make_stkpush_request('254701515491', '+254701515491', 10)
+
+account_plans = {
+    "body": "Choose one of the options displayed below",
+    "header": "Paid Premium membership plans",
+    "footer": "",
+    "action": "Click to select...",
+    "sections": [
+        {
+            "title": "Select membership plan",
+            "rows": [
+                {
+                    "id": "plan-1",
+                    "title": "Basic Plan Ksh. 1500",
+                    "description": "Basic Membership plan"
+                },
+                {
+                    "id": "plan-2",
+                    "title": "Silver Plan Ksh. 3000",
+                    "description": "Silver Membersip plan"
+                },
+                {
+                    "id": "plan-3",
+                    "title": "Gold Plan Ksh. 5000",
+                    "description": "Gold Membership plan"
+                }
+            ]
+        }
+    ],
+    "phone": 254701515491
+}

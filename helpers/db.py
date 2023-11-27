@@ -3,9 +3,9 @@ import mysql.connector
 
 def connection():
     conn =  mysql.connector.connect(
-        host="167.99.248.146",
+        host="165.227.135.106",
         user="wigo_wallet",
-        password="[aFM$D](tDt{",
+        password="3IAV3mLFDX4pSxHz",
         database="cbn_wallet"
     )
     return conn
