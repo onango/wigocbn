@@ -134,15 +134,17 @@ def check_user(message):
         message_body = my_account_list
         send_list_message(message_body, urlq="sendList")
     else:
-        
-        user_info = get_user_by_phone("+"+phone)
-        if user_info:
-            user_id = user_info['userID']
-            wallet_balance = get_user_wallet(user_id)["balance"]
-            header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
-            send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
-        else:
-            send_template_message("home", phone, sender_name, urlq="sendTemplate")
+        sent = True
+        if msg_type == 0:
+            user_info = get_user_by_phone("+"+phone)
+            if user_info:
+                user_id = user_info['userID']
+                wallet_balance = get_user_wallet(user_id)["balance"]
+                header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
+                send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
+            else:
+                send_template_message("home", phone, sender_name, urlq="sendTemplate")
+            sent = False
    
     # elif action['action'] == 'Recharge':
     #     pass
