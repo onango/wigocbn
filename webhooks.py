@@ -61,16 +61,6 @@ def check_user(message):
         update_data(phone, "action", "")
         message_body = "This feature is under maintenance, please check later! type *home* to return to main menu"
         send_message(message_body, phone, urlq="sendMessage")
-    elif msg_type == 0 and action == "home":
-        
-        user_info = get_user_by_phone("+"+phone)
-        if user_info:
-            user_id = user_info['userID']
-            wallet_balance = get_user_wallet(user_id)["balance"]
-            header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
-            send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
-        else:
-            send_template_message("home", phone, sender_name, urlq="sendTemplate")
     elif msg_type == 0 and action == "Join wigoPay Network":
         # print("ACT2 ------------------",action, msg_type)
         send_template_message("plan_type_home", phone, sender_name, urlq="sendTemplate")
@@ -139,6 +129,16 @@ def check_user(message):
         message_body = "Thanks, Your airtime request is being processed"
         send_message(message_body, phone, urlq="sendMessage")
         make_stkpush_request(phone, read_data(phone, "recipient"), action)
+    else:
+        
+        user_info = get_user_by_phone("+"+phone)
+        if user_info:
+            user_id = user_info['userID']
+            wallet_balance = get_user_wallet(user_id)["balance"]
+            header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
+            send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
+        else:
+            send_template_message("home", phone, sender_name, urlq="sendTemplate")
    
     # elif action['action'] == 'Recharge':
     #     pass
