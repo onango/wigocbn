@@ -133,7 +133,7 @@ def check_user(message):
         my_account_list['phone'] = phone
         message_body = my_account_list
         send_list_message(message_body, urlq="sendList")
-    elif msg_type == 0 and if any(char.isalpha() or char.isdigit() for char in action):
+    elif msg_type == 0 and any(char.isalpha() or char.isdigit() for char in action):
         user_info = get_user_by_phone("+"+phone)
         if user_info:
             user_id = user_info['userID']

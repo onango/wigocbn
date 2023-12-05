@@ -332,4 +332,12 @@ def get_user_wallet(id):
     return result
 
 
-print(get_user_by_phone("+254701515491"))
+# print(get_user_by_phone("+254701515491"))
+# phone = "254721429815"
+# sender_name = "Steve"
+# user_info = get_user_by_phone("+"+phone)
+# if user_info:
+#     user_id = user_info['userID']
+#     wallet_balance = get_user_wallet(user_id)["balance"]
+#     header_text = f"Cash A/C: KES {wallet_balance}, Loan A/C: KES 0.00"
+#     send_template_message2("home_registered", phone, sender_name, header_text, urlq="sendTemplate")
