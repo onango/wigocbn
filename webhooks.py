@@ -129,6 +129,10 @@ def check_user(message):
         message_body = "Thanks, Your airtime request is being processed"
         send_message(message_body, phone, urlq="sendMessage")
         make_stkpush_request(phone, read_data(phone, "recipient"), action)
+    elif msg_type == 0 and action == "View More":
+        my_account_list['phone'] = phone
+        message_body = my_account_list
+        send_list_message(message_body, urlq="sendList")
     else:
         
         user_info = get_user_by_phone("+"+phone)
@@ -323,6 +327,46 @@ account_plans = {
                     "id": "plan-3",
                     "title": "Gold Plan Ksh. 5000",
                     "description": "Gold Membership plan"
+                }
+            ]
+        }
+    ],
+    "phone": 254701515491
+}
+
+my_account_list = {
+    "body": "Choose one of the options displayed below",
+    "header": "My Account",
+    "footer": "",
+    "action": "Click to select...",
+    "sections": [
+        {
+            "title": "Select ...",
+            "rows": [
+                {
+                    "id": "pin_change",
+                    "title": "Pin Change",
+                    "description": "Change your Password"
+                },
+                {
+                    "id": "txn_summary",
+                    "title": "Transaction Summary",
+                    "description": "A summary of airtime transactions"
+                },
+                {
+                    "id": "mini_stmt",
+                    "title": "Mini Statement",
+                    "description": "Airtime transaction mini statements"
+                },
+                {
+                    "id": "upgrade_plan",
+                    "title": "Upgrade Plan",
+                    "description": "Upgrade plan/membership"
+                },
+                {
+                    "id": "my_network",
+                    "title": "My Network",
+                    "description": "Your network list"
                 }
             ]
         }
