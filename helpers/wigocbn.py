@@ -3,10 +3,12 @@ import json
 import numpy as np
 import datetime
 from .db import connection
+# from .db import connection
 import random
 import re
 from datetime import datetime
 from flask import jsonify
+# from helpers.whatsapp import *
 from helpers.whatsapp import *
 
 def get_user_by_phone(phone):
@@ -331,11 +333,58 @@ def get_user_wallet(id):
     cnx.close()
     return result
 
+def mini_statement(user_id, limit = 10):
+    cnx = connection()
+    cursor = cnx.cursor(dictionary=True)
+    
+    wallet_query = """
+        SELECT *
+        FROM cbnWallet
+        WHERE userID = %s
+    """
+    
+    cursor.execute(wallet_query, (user_id,))
+    wallet = cursor.fetchone()
+
+    if wallet:
+        wallet_id = wallet['walletID']
+        
+        mini_statement_query = """
+            SELECT *
+            FROM cbnWalletHistory
+            WHERE walletID = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+        """
+        
+        cursor.execute(mini_statement_query, (wallet_id, limit))
+        mini_statement = cursor.fetchall()
+        
+        cursor.close()
+        cnx.close()
+        
+        return mini_statement
+    else:
+        # Handle case when wallet not found
+        return []
 
 # print(get_user_by_phone("+254701515491"))
-# phone = "254721429815"
-# sender_name = "Steve"
+# phone = "254701515491"
+# # sender_name = "Steve"
 # user_info = get_user_by_phone("+"+phone)
+# user_id = user_info['userID']
+# response_data = mini_statement(user_id)
+# # Convert each item to one string variable
+# result_string = "Prev Balance | Amount | New Balance | Description\n"
+
+# # Convert each item to one string variable
+# for item in response_data:
+#     result_string += (
+#         f"{item['prev_balance']} | {item['amount']} | {item['new_balance']} | {item['description']}\n"
+#     )
+
+# # Print or use the result string
+# print(result_string)
 # if user_info:
 #     user_id = user_info['userID']
 #     wallet_balance = get_user_wallet(user_id)["balance"]

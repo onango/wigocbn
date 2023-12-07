@@ -48,6 +48,8 @@ def check_user(message):
     phone = message.get('chatName')
     user = get_user_by_phone("+" + phone)
     body = message.get('body')
+    list_reply = message.get('list_reply', {})
+    list_reply_id = list_reply.get('id', '')
 
     if msg_type == 0:
         store_data(phone, "action", body)
@@ -56,7 +58,7 @@ def check_user(message):
     next_action = read_data(phone, "next_action")
     print("ACT ------------------",action, msg_type)
 
-    if msg_type == 0 and action == "View More" or action == "Withdraw Cash":
+    if msg_type == 0 and action == "Withdraw Cash":
         update_data(phone, "next_action", "")
         update_data(phone, "action", "")
         message_body = "This feature is under maintenance, please check later! type *home* to return to main menu"
@@ -133,6 +135,60 @@ def check_user(message):
         my_account_list['phone'] = phone
         message_body = my_account_list
         send_list_message(message_body, urlq="sendList")
+    # elif msg_type == 0 and action == "old pin":
+    #     update_data(phone, "next_action", "confirm_current_pin")
+    #     message_body = "Enter Current PIN"
+    #     send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'confirm_current_pin':
+        update_data(phone, "pin_current", action)
+        if read_data(phone, "pin_current") == "0000":
+            update_data(phone, "next_action", "confirm_pin")
+            message_body = "Enter PIN  (4 digits)"
+            send_message(message_body, phone, urlq="sendMessage")
+        else:
+            # update_data(phone, "next_action", "")
+            message_body = "Current Pin not matched, Enter Current PIN"
+            send_message(message_body, phone, urlq="sendMessage")
+    # elif msg_type == 0 and action == "new pin":
+    #     update_data(phone, "next_action", "confirm_pin")
+    #     message_body = "Enter PIN  (4 digits)"
+    #     send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'confirm_pin':
+        update_data(phone, "pin", action)
+        update_data(phone, "next_action", "set_pin")
+        message_body = "Confirm PIN  (4 digits)"
+        send_message(message_body, phone, urlq="sendMessage")
+    elif msg_type == 0 and next_action is not None and next_action == 'set_pin':
+        update_data(phone, "pin_confirmation", action)
+        if read_data(phone, "pin") == read_data(phone, "pin_confirmation"):
+            update_data(phone, "next_action", "")
+            message_body = "Pin Match"
+            send_message(message_body, phone, urlq="sendMessage")
+        else:
+            # update_data(phone, "next_action", "")
+            message_body = "Pin not match, Confirm PIN  (4 digits)"
+            send_message(message_body, phone, urlq="sendMessage")
+
+    elif list_reply_id:
+        if list_reply_id == "pin_change":
+            user_info = get_user_by_phone("+"+phone)
+            if user_info:
+                user_pin = user_info['pin']
+                if user_pin:
+                    update_data(phone, "next_action", "confirm_current_pin")
+                    message_body = "Enter Current PIN"
+                    send_message(message_body, phone, urlq="sendMessage")
+                else:
+                    update_data(phone, "next_action", "confirm_pin")
+                    message_body = "Enter PIN  (4 digits)"
+                    send_message(message_body, phone, urlq="sendMessage")
+            else:
+                update_data(phone, "next_action", "confirm_pin")
+                message_body = "Enter PIN  (4 digits)"
+                send_message(message_body, phone, urlq="sendMessage")
+
+        else:
+            process_list_reply(list_reply_id, phone)
     elif msg_type == 0 and any(char.isalpha() or char.isdigit() for char in action):
         user_info = get_user_by_phone("+"+phone)
         if user_info:
@@ -372,3 +428,49 @@ my_account_list = {
     ],
     "phone": 254701515491
 }
+
+def format_statement(phone):
+    result_string = ""
+    user_info = get_user_by_phone("+"+phone)
+    if user_info:
+        user_id = user_info['userID']
+        response_data = mini_statement(user_id)
+        # Convert each item to one string variable
+        result_string = "Prev Balance | Amount | New Balance | Description\n"
+
+        # Convert each item to one string variable
+        for item in response_data:
+            result_string += (
+                f"{item['prev_balance']} | {item['amount']} | {item['new_balance']} | {item['description']}\n"
+            )
+        return result_string
+
+def process_list_reply(list_reply_id, phone):
+    
+    if list_reply_id == "txn_summary":
+        message_body = format_statement(phone)
+        send_message(message_body, phone, urlq="sendMessage")
+        # Additional code for Transaction Summary
+
+    elif list_reply_id == "mini_stmt":
+        message_body = format_statement(phone)
+        send_message(message_body, phone, urlq="sendMessage")
+        # Additional code for Mini Statement
+
+    # elif list_reply_id == "upgrade_plan":
+    #     print("Processing Upgrade Plan:")
+    #     print("Title:", list_reply.get('title', ''))
+    #     print("Description:", list_reply.get('description', ''))
+    #     # Additional code for Upgrade Plan
+
+    # elif list_reply_id == "my_network":
+    #     print("Processing My Network:")
+    #     print("Title:", list_reply.get('title', ''))
+    #     print("Description:", list_reply.get('description', ''))
+        # Additional code for My Network
+
+    else:
+        message_body = "This feature is under maintenance, please check later! type *home* to return to main menu"
+        send_message(message_body, phone, urlq="sendMessage")
+
+        
